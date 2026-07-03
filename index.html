@@ -17,6 +17,24 @@
   <meta name="twitter:title" content="JobCopilot Promo Code: 50% Off Premium (Official Discount)" />
   <meta name="twitter:description" content="Get 50% off JobCopilot Premium with official promo codes. AI applies to 50 jobs/day across 500,000+ companies. New user discount available now." />
   
+  <!-- Meta Pixel Code -->
+  <script>
+  !function(f,b,e,v,n,t,s)
+  {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+  n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+  if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+  n.queue=[];t=b.createElement(e);t.async=!0;
+  t.src=v;s=b.getElementsByTagName(e)[0];
+  s.parentNode.insertBefore(t,s)}(window, document,'script',
+  'https://connect.facebook.net/en_US/fbevents.js');
+  fbq('init', '1021338223956909');
+  fbq('track', 'PageView');
+  </script>
+  <noscript><img height="1" width="1" style="display:none"
+  src="https://www.facebook.com/tr?id=1021338223956909&ev=PageView&noscript=1"
+  /></noscript>
+  <!-- End Meta Pixel Code -->
+
   <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
@@ -1478,6 +1496,17 @@ a {
       button.addEventListener('click', (e) => {
         e.preventDefault();
         const code = button.getAttribute('data-code');
+
+        // ===== FB PIXEL: LEAD EVENT =====
+        if (typeof fbq === 'function') {
+          fbq('track', 'Lead', {
+            content_name: 'JobCopilot Promo Code',
+            content_category: 'Affiliate',
+            value: 0,
+            currency: 'USD'
+          });
+        }
+        // ================================
         
         // Copy to clipboard
         navigator.clipboard.writeText(code).then(() => {
@@ -1507,6 +1536,23 @@ a {
         });
       });
     });
+
+    // ===== FB PIXEL: VIEW CONTENT khi scroll 50% =====
+    let viewContentFired = false;
+    window.addEventListener('scroll', () => {
+      if (viewContentFired) return;
+      const scrollPct = (window.scrollY / (document.body.scrollHeight - window.innerHeight)) * 100;
+      if (scrollPct >= 50) {
+        viewContentFired = true;
+        if (typeof fbq === 'function') {
+          fbq('track', 'ViewContent', {
+            content_name: 'JobCopilot Promo Page',
+            content_category: 'Affiliate'
+          });
+        }
+      }
+    });
+    // =================================================
   </script>
 </body>
 </html>
