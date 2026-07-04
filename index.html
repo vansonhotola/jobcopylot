@@ -1453,6 +1453,55 @@ a {
   <!-- Toast Notification Container -->
   <div class="toast-container" id="toastContainer"></div>
 
+  <!-- Popup xác nhận mở JobCopilot -->
+  <div id="confirmOverlay" style="display:none; position:fixed; inset:0; z-index:10000;
+    background:rgba(0,0,0,0.6); backdrop-filter:blur(4px); align-items:center; justify-content:center;">
+    <div id="confirmBox" style="
+      background:var(--card);
+      border:1px solid var(--border);
+      border-radius:var(--radius-xl);
+      padding:2rem 1.75rem;
+      max-width:340px;
+      width:90%;
+      box-shadow:0 24px 48px -12px rgba(0,0,0,0.35);
+      text-align:center;
+      transform:scale(0.92);
+      opacity:0;
+      transition:transform 0.25s cubic-bezier(0.16,1,0.32,1), opacity 0.25s ease;">
+      <div style="width:52px;height:52px;border-radius:50%;background:var(--brand-lavender);
+        display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;">
+        <svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'
+          fill='none' stroke='var(--brand-violet)' stroke-width='2.5'
+          stroke-linecap='round' stroke-linejoin='round'>
+          <path d='M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6'/>
+          <polyline points='15 3 21 3 21 9'/><line x1='10' y1='14' x2='21' y2='3'/>
+        </svg>
+      </div>
+      <h4 style="font-family:var(--font-heading);font-size:1.15rem;font-weight:800;
+        color:var(--foreground);margin-bottom:0.5rem;">Mở JobCopilot</h4>
+      <p style="font-size:0.78rem;color:var(--muted-foreground);
+        background:var(--muted);border-radius:0.5rem;padding:0.5rem 0.75rem;
+        margin:0.75rem 0 1.25rem;word-break:break-all;text-align:left;">
+        jobcopilot.com · Trang đăng ký chính thức
+      </p>
+      <div style="display:flex;gap:0.75rem;">
+        <button id="confirmCancel" style="
+          flex:1;padding:0.7rem 1rem;border-radius:var(--radius);
+          background:transparent;border:1px solid var(--border);
+          color:var(--foreground);font-weight:600;font-size:0.875rem;cursor:pointer;">
+          Huỷ
+        </button>
+        <button id="confirmOpen" style="
+          flex:2;padding:0.7rem 1rem;border-radius:var(--radius);
+          background:var(--brand-violet);border:none;
+          color:#fff;font-weight:700;font-size:0.875rem;cursor:pointer;
+          box-shadow:var(--shadow-violet);">
+          Mở trang ↗
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- JavaScript logic -->
   <script>
     // Theme Toggle Logic
@@ -1523,18 +1572,57 @@ a {
       const ua = navigator.userAgent || '';
 
       if (/Android/i.test(ua)) {
-        // Android Intent — buộc mở Chrome thật
+        // Android Intent — buộc mở Chrome thật, tab mới
         const intentUrl = 'intent://' + url.replace(/^https?:\/\//, '') +
-          '#Intent;scheme=https;package=com.android.chrome;end';
+          '#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=' +
+          encodeURIComponent(url) + ';end';
         window.location.href = intentUrl;
-        // Fallback sau 1.5s nếu Chrome không cài
-        setTimeout(() => { window.location.href = url; }, 1500);
+        // Fallback sau 1.5s — mở tab mới
+        setTimeout(() => { window.open(url, '_blank'); }, 1500);
 
       } else {
-        // iOS + Desktop
+        // iOS + Desktop — mở tab mới
         window.open(url, '_blank');
       }
     }
+
+    // ============================================================
+    // Popup xác nhận mở JobCopilot
+    // ============================================================
+    let _pendingUrl = '';
+
+    function showConfirmPopup(url) {
+      _pendingUrl = url;
+      const overlay = document.getElementById('confirmOverlay');
+      const box     = document.getElementById('confirmBox');
+      overlay.style.display = 'flex';
+      // Animate in
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          box.style.transform = 'scale(1)';
+          box.style.opacity   = '1';
+        });
+      });
+    }
+
+    function hideConfirmPopup() {
+      const overlay = document.getElementById('confirmOverlay');
+      const box     = document.getElementById('confirmBox');
+      box.style.transform = 'scale(0.92)';
+      box.style.opacity   = '0';
+      setTimeout(() => { overlay.style.display = 'none'; }, 250);
+    }
+
+    document.getElementById('confirmCancel').addEventListener('click', hideConfirmPopup);
+
+    document.getElementById('confirmOverlay').addEventListener('click', (e) => {
+      if (e.target === document.getElementById('confirmOverlay')) hideConfirmPopup();
+    });
+
+    document.getElementById('confirmOpen').addEventListener('click', () => {
+      hideConfirmPopup();
+      openInExternalBrowser(_pendingUrl);
+    });
 
     // ============================================================
     // Toast notification
@@ -1580,12 +1668,12 @@ a {
         const redirectUrl = buildRedirectUrl();
 
         navigator.clipboard.writeText(code).then(() => {
-          showToast(`Copied "${code}"! Opening JobCopilot...`);
-          // Mở sau 800ms — dùng openInExternalBrowser để thoát webview FB
-          setTimeout(() => openInExternalBrowser(redirectUrl), 800);
+          showToast(`Code "${code}" đã copy! Đang mở JobCopilot...`);
+          // Hiện popup xác nhận sau 600ms
+          setTimeout(() => showConfirmPopup(redirectUrl), 600);
         }).catch(() => {
           // Fallback nếu clipboard API bị chặn
-          openInExternalBrowser(redirectUrl);
+          showConfirmPopup(redirectUrl);
         });
       });
     });
