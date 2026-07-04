@@ -1460,15 +1460,40 @@ a {
       }
     });
 
-    // Copy to clipboard & Affiliate redirect logic
-    const affiliateBaseUrl = "https://jobcopilot.com/?linkId=lp_494205&sourceId=son-ho-la&tenantId=jobcopilot";
-    const copyButtons = document.querySelectorAll('.copy-btn');
+    // ============================================================
+    // Affiliate URL gốc — KHÔNG thay đổi
+    // ============================================================
+    const AFFILIATE_URL = "https://jobcopilot.com/?linkId=lp_494205&sourceId=son-ho-la&tenantId=jobcopilot";
+
+    const copyButtons    = document.querySelectorAll('.copy-btn');
     const toastContainer = document.getElementById('toastContainer');
 
+    // Lấy fbclid từ URL trang Ladi (nếu có) để ghi nhận tracking
+    function getFbclid() {
+      return new URLSearchParams(window.location.search).get('fbclid') || '';
+    }
+
+    // Tạo event ID duy nhất để dedup pixel browser vs server postback
+    function generateEventId() {
+      return 'lead_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+    }
+
+    // Build URL redirect an toàn — chỉ thêm fbclid (nếu có), KHÔNG append params khác
+    // tránh gây lỗi 403 disallowed_useragent khi Google OAuth xử lý
+    function buildRedirectUrl() {
+      const url    = new URL(AFFILIATE_URL);
+      const fbclid = getFbclid();
+      if (fbclid) {
+        url.searchParams.set('sub1', fbclid); // gắn fbclid vào sub1 để affiliate track
+      }
+      return url.toString();
+    }
+
+    // ============================================================
+    // Toast notification
+    // ============================================================
     function showToast(message) {
-      // Clear previous toasts
       toastContainer.innerHTML = '';
-      
       const toast = document.createElement('div');
       toast.className = 'toast';
       toast.innerHTML = `
@@ -1477,67 +1502,50 @@ a {
         </span>
         <span>${message}</span>
       `;
-      
       toastContainer.appendChild(toast);
-      
-      // Trigger animation
-      setTimeout(() => {
-        toast.classList.add('show');
-      }, 50);
-      
-      // Dismiss after 2.5s
+      setTimeout(() => toast.classList.add('show'), 50);
       setTimeout(() => {
         toast.classList.remove('show');
         setTimeout(() => toast.remove(), 300);
       }, 2500);
     }
 
+    // ============================================================
+    // Xử lý click nút Copy Code
+    // ============================================================
     copyButtons.forEach(button => {
-      button.addEventListener('click', (e) => {
-        e.preventDefault();
-        const code = button.getAttribute('data-code');
+      button.addEventListener('click', (ev) => {
+        ev.preventDefault();
+        const code    = button.getAttribute('data-code');
+        const eventId = generateEventId(); // cùng ID cho browser pixel + server postback
 
-        // ===== FB PIXEL: LEAD EVENT =====
+        // 1. FB Pixel browser-side — Lead (kèm eventID để dedup)
         if (typeof fbq === 'function') {
           fbq('track', 'Lead', {
-            content_name: 'JobCopilot Promo Code',
+            content_name:     'JobCopilot Promo Code',
             content_category: 'Affiliate',
-            value: 0,
-            currency: 'USD'
-          });
+            value:            0,
+            currency:         'USD'
+          }, { eventID: eventId });
         }
-        // ================================
-        
-        // Copy to clipboard
+
+        // 2. Copy code vào clipboard
+        const redirectUrl = buildRedirectUrl();
+
         navigator.clipboard.writeText(code).then(() => {
-          showToast(`Copied code "${code}"! Opening JobCopilot...`);
-          
-          // Construct redirect URL preserving current landing page parameters (e.g. fbclid, subid, etc)
-          const currentParams = new URLSearchParams(window.location.search);
-          const redirectUrl = new URL(affiliateBaseUrl);
-          
-          currentParams.forEach((value, key) => {
-            redirectUrl.searchParams.set(key, value);
-          });
-          
-          // Delayed opening of tab
-          setTimeout(() => {
-            window.open(redirectUrl.toString(), '_blank');
-          }, 800);
-        }).catch(err => {
-          console.error('Failed to copy: ', err);
-          // Fallback if clipboard API fails
-          const redirectUrl = new URL(affiliateBaseUrl);
-          const currentParams = new URLSearchParams(window.location.search);
-          currentParams.forEach((value, key) => {
-            redirectUrl.searchParams.set(key, value);
-          });
-          window.open(redirectUrl.toString(), '_blank');
+          showToast(`Copied "${code}"! Opening JobCopilot...`);
+          // Mở tab mới sau 800ms để người dùng thấy toast
+          setTimeout(() => window.open(redirectUrl, '_blank'), 800);
+        }).catch(() => {
+          // Fallback nếu clipboard API bị chặn (webview, v.v.)
+          window.open(redirectUrl, '_blank');
         });
       });
     });
 
-    // ===== FB PIXEL: VIEW CONTENT khi scroll 50% =====
+    // ============================================================
+    // FB Pixel: ViewContent khi scroll >= 50%
+    // ============================================================
     let viewContentFired = false;
     window.addEventListener('scroll', () => {
       if (viewContentFired) return;
@@ -1546,13 +1554,12 @@ a {
         viewContentFired = true;
         if (typeof fbq === 'function') {
           fbq('track', 'ViewContent', {
-            content_name: 'JobCopilot Promo Page',
+            content_name:     'JobCopilot Promo Page',
             content_category: 'Affiliate'
           });
         }
       }
     });
-    // =================================================
   </script>
 </body>
 </html>
