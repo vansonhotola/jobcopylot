@@ -1569,19 +1569,13 @@ a {
     // Android dùng Intent, iOS dùng window.open _blank
     // ============================================================
     function openInExternalBrowser(url) {
-      const ua = navigator.userAgent || '';
-
-      if (/Android/i.test(ua)) {
-        // Android Intent — buộc mở Chrome thật
-        const intentUrl = 'intent://' + url.replace(/^https?:\/\//, '') +
-          '#Intent;scheme=https;package=com.android.chrome;end';
-        window.location.href = intentUrl;
-        // Fallback sau 1.5s nếu Chrome không cài
-        setTimeout(() => { window.location.href = url; }, 1500);
-
-      } else {
-        // iOS + Desktop
-        window.open(url, '_blank');
+      // PHÁ VỠ IFRAME — đưa toàn bộ tab ra khỏi LadiPage
+      // window.top = cửa sổ ngoài cùng, thoát khỏi mọi iframe
+      try {
+        window.top.location.href = url;
+      } catch(e) {
+        // Fallback nếu bị chặn cross-origin
+        window.location.href = url;
       }
     }
 
@@ -1668,8 +1662,8 @@ a {
 
         navigator.clipboard.writeText(code).then(() => {
           showToast(`Code "${code}" đã copy! Đang mở JobCopilot...`);
-          // Hiện popup xác nhận sau 600ms
-          setTimeout(() => showConfirmPopup(redirectUrl), 600);
+          // Hiện popup ngay lập tức — không delay để Safari không chặn
+          showConfirmPopup(redirectUrl);
         }).catch(() => {
           // Fallback nếu clipboard API bị chặn
           showConfirmPopup(redirectUrl);
