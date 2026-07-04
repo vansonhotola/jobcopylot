@@ -1572,16 +1572,15 @@ a {
       const ua = navigator.userAgent || '';
 
       if (/Android/i.test(ua)) {
-        // Android Intent — buộc mở Chrome thật, tab mới
+        // Android Intent — buộc mở Chrome thật
         const intentUrl = 'intent://' + url.replace(/^https?:\/\//, '') +
-          '#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=' +
-          encodeURIComponent(url) + ';end';
+          '#Intent;scheme=https;package=com.android.chrome;end';
         window.location.href = intentUrl;
-        // Fallback sau 1.5s — mở tab mới
-        setTimeout(() => { window.open(url, '_blank'); }, 1500);
+        // Fallback sau 1.5s nếu Chrome không cài
+        setTimeout(() => { window.location.href = url; }, 1500);
 
       } else {
-        // iOS + Desktop — mở tab mới
+        // iOS + Desktop
         window.open(url, '_blank');
       }
     }
