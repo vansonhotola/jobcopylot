@@ -17,6 +17,25 @@
   <meta name="twitter:title" content="JobCopilot Promo Code: 50% Off Premium (Official Discount)" />
   <meta name="twitter:description" content="Get 50% off JobCopilot Premium with official promo codes. AI applies to 50 jobs/day across 500,000+ companies. New user discount available now." />
   
+  <!-- Webview Warning Banner (iOS fallback) -->
+  <div id="webviewBanner" style="display:none; position:fixed; top:0; left:0; right:0; z-index:9999;
+    background:#f59e0b; color:#000; text-align:center; padding:12px 16px; font-size:14px;
+    font-weight:600; line-height:1.4; box-shadow:0 2px 8px rgba(0,0,0,0.2);">
+    ⚠️ Để đăng ký được, hãy mở link bằng <strong>Chrome hoặc Safari</strong><br>
+    <span style="font-weight:400">Bấm ··· (góc trên) → "Mở trong trình duyệt"</span>
+  </div>
+  <script>
+    // Hiện banner nếu đang trong Facebook/Instagram/Zalo webview trên iOS
+    (function() {
+      var ua = navigator.userAgent || '';
+      var isIOS = /iPhone|iPad|iPod/i.test(ua);
+      var isFBWebview = /FBAN|FBAV|FB_IAB|Instagram|ZaloApp|TikTok/i.test(ua);
+      if (isIOS && isFBWebview) {
+        document.getElementById('webviewBanner').style.display = 'block';
+      }
+    })();
+  </script>
+
   <!-- Meta Pixel Code -->
   <script>
   !function(f,b,e,v,n,t,s)
@@ -1479,14 +1498,42 @@ a {
     }
 
     // Build URL redirect an toàn — chỉ thêm fbclid (nếu có), KHÔNG append params khác
-    // tránh gây lỗi 403 disallowed_useragent khi Google OAuth xử lý
     function buildRedirectUrl() {
       const url    = new URL(AFFILIATE_URL);
       const fbclid = getFbclid();
       if (fbclid) {
-        url.searchParams.set('sub1', fbclid); // gắn fbclid vào sub1 để affiliate track
+        url.searchParams.set('sub1', fbclid);
       }
       return url.toString();
+    }
+
+    // ============================================================
+    // Phát hiện Facebook / Instagram / Zalo / TikTok webview
+    // ============================================================
+    function isWebview() {
+      const ua = navigator.userAgent || '';
+      return /FBAN|FBAV|FB_IAB|Instagram|ZaloApp|TikTok|MicroMessenger/i.test(ua);
+    }
+
+    // ============================================================
+    // Force mở trình duyệt thật — thoát khỏi Facebook webview
+    // Android dùng Intent, iOS dùng window.open _blank
+    // ============================================================
+    function openInExternalBrowser(url) {
+      const ua = navigator.userAgent || '';
+
+      if (/Android/i.test(ua)) {
+        // Android Intent — buộc mở Chrome thật
+        const intentUrl = 'intent://' + url.replace(/^https?:\/\//, '') +
+          '#Intent;scheme=https;package=com.android.chrome;end';
+        window.location.href = intentUrl;
+        // Fallback sau 1.5s nếu Chrome không cài
+        setTimeout(() => { window.location.href = url; }, 1500);
+
+      } else {
+        // iOS + Desktop
+        window.open(url, '_blank');
+      }
     }
 
     // ============================================================
@@ -1534,11 +1581,11 @@ a {
 
         navigator.clipboard.writeText(code).then(() => {
           showToast(`Copied "${code}"! Opening JobCopilot...`);
-          // Mở tab mới sau 800ms để người dùng thấy toast
-          setTimeout(() => window.open(redirectUrl, '_blank'), 800);
+          // Mở sau 800ms — dùng openInExternalBrowser để thoát webview FB
+          setTimeout(() => openInExternalBrowser(redirectUrl), 800);
         }).catch(() => {
-          // Fallback nếu clipboard API bị chặn (webview, v.v.)
-          window.open(redirectUrl, '_blank');
+          // Fallback nếu clipboard API bị chặn
+          openInExternalBrowser(redirectUrl);
         });
       });
     });
